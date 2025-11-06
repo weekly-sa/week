@@ -84,13 +84,11 @@ class AgeTaskTracker {
 
             this.currentUser = data.user;
 
-            // Save user profile
             const { error: profileError } = await supabase
                 .from('users')
                 .insert([{
                     id: data.user.id,
                     email,
-                    password_hash: password,
                     birth_date: birthDate
                 }]);
 
@@ -143,7 +141,7 @@ class AgeTaskTracker {
             .from('users')
             .select('*')
             .eq('id', this.currentUser.id)
-            .single();
+            .maybeSingle();
 
         if (userData) {
             this.updateAgeDisplay(userData.birth_date);
