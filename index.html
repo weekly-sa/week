@@ -192,8 +192,14 @@
         </div>
     </div>
 
-    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/main.min.js"></script>
-    <script src="config.js" defer></script>
-    <script src="app.js" defer></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.38.4"
+        }
+    }
+    </script>
+    <script type="module" src="config.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
