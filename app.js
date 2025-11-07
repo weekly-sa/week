@@ -1,3 +1,5 @@
+import { supabase } from './config.js';
+
 class AgeTaskTracker {
     constructor() {
         this.currentUser = null;
