@@ -686,6 +686,8 @@ class AgeTaskTracker {
     }
 
     async toggleTaskCompletion(taskId, isCompleted) {
+        if (!this.currentUser) return;
+
         const today = new Date().toISOString().split('T')[0];
 
         try {
@@ -700,7 +702,8 @@ class AgeTaskTracker {
                 const { error } = await supabase.from('task_completions')
                     .delete()
                     .eq('task_id', taskId)
-                    .eq('completion_date', today);
+                    .eq('completion_date', today)
+                    .eq('user_id', this.currentUser.id);
                 if (error) throw error;
             }
 
