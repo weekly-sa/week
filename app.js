@@ -8,8 +8,52 @@ class AgeTaskTracker {
         this.tasks = [];
         this.completions = [];
         this.stats = [];
+        this.birthDate = null;
+        this.ageData = {};
 
         this.init();
+    }
+
+    calculateAgeData(birthDate) {
+        const today = new Date();
+        const birth = new Date(birthDate);
+
+        let years = today.getFullYear() - birth.getFullYear();
+        let months = today.getMonth() - birth.getMonth();
+        let days = today.getDate() - birth.getDate();
+
+        if (days < 0) {
+            months--;
+            const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+            days += prevMonth.getDate();
+        }
+
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+
+        const totalDays = Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+        const totalWeeks = Math.floor(totalDays / 7);
+
+        return {
+            years,
+            months,
+            days,
+            totalDays,
+            totalWeeks,
+            nextBirthday: this.getNextBirthday(birth)
+        };
+    }
+
+    getNextBirthday(birthDate) {
+        const today = new Date();
+        const thisYear = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+
+        if (thisYear < today) {
+            return new Date(today.getFullYear() + 1, birthDate.getMonth(), birthDate.getDate());
+        }
+        return thisYear;
     }
 
     async init() {
@@ -80,9 +124,18 @@ class AgeTaskTracker {
         const password = document.getElementById('registerPassword').value;
         const birthDate = document.getElementById('birthDate').value;
 
+        if (!birthDate) {
+            this.showAuthError('registerError', 'الرجاء إدخال تاريخ الميلاد');
+            return;
+        }
+
         try {
             const { data, error } = await supabase.auth.signUp({ email, password });
             if (error) throw error;
+
+            if (!data.user) {
+                throw new Error('فشل إنشاء الحساب');
+            }
 
             this.currentUser = data.user;
 
@@ -94,12 +147,19 @@ class AgeTaskTracker {
                     birth_date: birthDate
                 }]);
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Profile error:', profileError);
+                throw profileError;
+            }
 
             this.showMainSection();
             await this.loadUserData();
             this.renderCurrentView();
+
+            this.showAuthError('registerError', 'تم إنشاء الحساب بنجاح!');
+            document.getElementById('registerForm').reset();
         } catch (error) {
+            console.error('Register error:', error);
             this.showAuthError('registerError', error.message);
         }
     }
@@ -146,7 +206,10 @@ class AgeTaskTracker {
             .maybeSingle();
 
         if (userData) {
+            this.birthDate = userData.birth_date;
+            this.ageData = this.calculateAgeData(userData.birth_date);
             this.updateAgeDisplay(userData.birth_date);
+            this.setupBirthdayNotification();
         }
 
         const { data: tasksData } = await supabase
@@ -198,10 +261,86 @@ class AgeTaskTracker {
 
         const weeks = Math.floor(diffDays / 7);
 
-        document.getElementById('ageYears').textContent = years;
-        document.getElementById('ageMonths').textContent = months;
-        document.getElementById('ageWeeks').textContent = weeks;
-        document.getElementById('ageDays').textContent = diffDays;
+        if (document.getElementById('ageYears')) {
+            document.getElementById('ageYears').textContent = years;
+            document.getElementById('ageMonths').textContent = months;
+            document.getElementById('ageWeeks').textContent = weeks;
+            document.getElementById('ageDays').textContent = diffDays;
+        }
+    }
+
+    setupBirthdayNotification() {
+        const nextBirthday = this.ageData.nextBirthday;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const daysUntilBirthday = Math.ceil((nextBirthday - today) / (1000 * 60 * 60 * 24));
+
+        if (daysUntilBirthday === 0) {
+            this.showBirthdayAlert();
+        } else if (daysUntilBirthday > 0 && daysUntilBirthday <= 7) {
+            this.showBirthdayNotification(daysUntilBirthday);
+        }
+
+        const checkDaily = setInterval(() => {
+            const currentDate = new Date();
+            if (currentDate.toDateString() === nextBirthday.toDateString()) {
+                this.showBirthdayAlert();
+                clearInterval(checkDaily);
+            }
+        }, 1000 * 60 * 60);
+    }
+
+    showBirthdayNotification(daysUntil) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-weight: 600;
+            animation: slideIn 0.3s ease-out;
+        `;
+        notification.textContent = daysUntil === 1 ? 'عيد ميلاد غدا!' : `عيد ميلاد بعد ${daysUntil} ايام`;
+        document.body.appendChild(notification);
+
+        setTimeout(() => notification.remove(), 5000);
+    }
+
+    showBirthdayAlert() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            z-index: 10001;
+            text-align: center;
+        `;
+        modal.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 16px;">🎂🎉</div>
+            <h2 style="margin: 16px 0; color: #333;">عيد ميلاد سعيد!</h2>
+            <p style="color: #666; margin-bottom: 16px;">انت بعمر ${this.ageData.years} سنة الآن!</p>
+            <button onclick="this.parentElement.remove()" style="
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 16px;
+            ">شكراً</button>
+        `;
+        document.body.appendChild(modal);
     }
 
     switchView(view) {
@@ -516,11 +655,21 @@ class AgeTaskTracker {
         const description = document.getElementById('taskDescription').value;
         const frequency = document.getElementById('taskFrequency').value;
 
+        if (!this.currentUser) {
+            this.showAuthError('taskError', 'الرجاء تسجيل الدخول أولاً');
+            return;
+        }
+
+        if (!title.trim()) {
+            this.showAuthError('taskError', 'الرجاء إدخال عنوان المهمة');
+            return;
+        }
+
         try {
             const { data, error } = await supabase.from('tasks').insert([{
                 user_id: this.currentUser.id,
-                title,
-                description,
+                title: title.trim(),
+                description: description.trim(),
                 frequency,
                 start_date: new Date().toISOString().split('T')[0]
             }]);
@@ -531,6 +680,7 @@ class AgeTaskTracker {
             await this.loadUserData();
             this.renderCurrentView();
         } catch (error) {
+            console.error('Task error:', error);
             this.showAuthError('taskError', error.message);
         }
     }
