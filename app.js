@@ -129,8 +129,20 @@ class AgeTaskTracker {
             return;
         }
 
+        if (!email || !password) {
+            this.showAuthError('registerError', 'الرجاء إدخال البريد الإلكتروني وكلمة المرور');
+            return;
+        }
+
         try {
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}`
+                }
+            });
+
             if (error) throw error;
 
             if (!data.user) {
