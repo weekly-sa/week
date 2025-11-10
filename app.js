@@ -654,7 +654,7 @@ class AgeTaskTracker {
         e.preventDefault();
         const title = document.getElementById('taskTitle').value;
         const description = document.getElementById('taskDescription').value;
-        const frequency = document.getElementById('taskFrequency').value;
+        const frequency = document.getElementById('taskFrequency').value || 'daily';
 
         if (!this.currentUser) {
             this.showAuthError('taskError', 'الرجاء تسجيل الدخول أولاً');
@@ -666,23 +666,34 @@ class AgeTaskTracker {
             return;
         }
 
+        if (!frequency) {
+            this.showAuthError('taskError', 'الرجاء اختيار تكرار المهمة');
+            return;
+        }
+
         try {
+            const startDate = new Date().toISOString().split('T')[0];
+
             const { data, error } = await supabase.from('tasks').insert([{
                 user_id: this.currentUser.id,
                 title: title.trim(),
-                description: description.trim(),
-                frequency,
-                start_date: new Date().toISOString().split('T')[0]
+                description: description.trim() || null,
+                frequency: frequency,
+                start_date: startDate
             }]);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Insert error:', error);
+                throw error;
+            }
 
             document.getElementById('addTaskForm').reset();
             await this.loadUserData();
             this.renderCurrentView();
+            this.showAuthError('taskError', 'تمت إضافة المهمة بنجاح');
         } catch (error) {
             console.error('Task error:', error);
-            this.showAuthError('taskError', error.message);
+            this.showAuthError('taskError', error.message || 'فشل إضافة المهمة');
         }
     }
 
