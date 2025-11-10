@@ -135,35 +135,24 @@ class AgeTaskTracker {
         }
 
         try {
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo: `${window.location.origin}`
-                }
+            const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://ugbhzggjxvsfsxxzlcaq.supabase.co'}/functions/v1/auth-signup`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnYmh6Z2dqeHZzZnN4eHpsY2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTk3NTAsImV4cCI6MjA3ODAzNTc1MH0.m6ht8GEZxVAQM1lKPnWWO6QQsaJgGrPYROpjQnk6RGA'}`,
+                },
+                body: JSON.stringify({ email, password, birthDate })
             });
 
-            if (error) throw error;
+            const data = await response.json();
 
-            if (!data.user) {
-                throw new Error('فشل إنشاء الحساب');
+            if (!response.ok) {
+                throw new Error(data.error || 'فشل إنشاء الحساب');
             }
 
             this.currentUser = data.user;
-
-            const { error: profileError } = await supabase
-                .from('users')
-                .insert([{
-                    id: data.user.id,
-                    email,
-                    birth_date: birthDate
-                }]);
-
-            if (profileError) {
-                console.error('Profile error:', profileError);
-                throw profileError;
-            }
-
             this.showMainSection();
             await this.loadUserData();
             this.renderCurrentView();
