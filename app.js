@@ -135,13 +135,15 @@ class AgeTaskTracker {
         }
 
         try {
-            const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://ugbhzggjxvsfsxxzlcaq.supabase.co'}/functions/v1/auth-signup`;
+            const SUPABASE_URL = 'https://ugbhzggjxvsfsxxzlcaq.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnYmh6Z2dqeHZzZnN4eHpsY2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTk3NTAsImV4cCI6MjA3ODAzNTc1MH0.m6ht8GEZxVAQM1lKPnWWO6QQsaJgGrPYROpjQnk6RGA';
+            const apiUrl = `${SUPABASE_URL}/functions/v1/auth-signup`;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnYmh6Z2dqeHZzZnN4eHpsY2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTk3NTAsImV4cCI6MjA3ODAzNTc1MH0.m6ht8GEZxVAQM1lKPnWWO6QQsaJgGrPYROpjQnk6RGA'}`,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify({ email, password, birthDate })
             });
